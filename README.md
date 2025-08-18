@@ -1,13 +1,28 @@
 # halp
 
-`halp` is a command line tool that provides remote-Ollama assistance for developers. It connects to remote Ollama instances and injects contextual information into prompts, helping the LLM understand exactly what you're working with.
+`halp` is a command line tool that provides remote-Ollama assistance for the command line.
 
-## Features
+It connects to your remote Ollama instances (via OpenAI-compatible API) and injects contextual information into prompts, helping the LLM understand exactly what you're working with.
 
-- Connect to remote Ollama instances for LLM assistance
-- Inject context from your current working environment into prompts
-- Get intelligent assistance right from your terminal
-- Seamless integration with your development workflow
+## Installation
+
+1. git clone this repo
+
+```
+cd halp
+chmod +x ./halp
+mkdir -p ~/.local/bin
+mv ./halp ~/.local/bin/halp
+touch ~/.halp.yaml
+```
+
+```sh
+# Add ~/.local/bin to PATH for zsh on macOS
+if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' ~/.zshrc; then
+  echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+fi
+source ~/.zshrc
+```
 
 ## Usage
 

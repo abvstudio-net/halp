@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"""
+halp - A command line tool that provides remote-Ollama assistance.
+"""
+
+import argparse
+import os
+import sys
+import json
+from pathlib import Path
+
+if __name__ == "__main__":
+    print("\n######################### NEED HELP?")
+    print("How can I help?")
+    prompt = input(" > ").strip()
+
+    print(prompt)
