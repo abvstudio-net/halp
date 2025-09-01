@@ -4,15 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "halp"
-version = "0.1.0"
 description = "AI assistance for the command line"
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MIT" }
+dynamic = ["version"]
 
 [project.scripts]
-halp = "halp:main"
+halp = "halp.cli:main"
 
 [tool.setuptools]
-py-modules = ["halp"]
 license-files = ["LICENSE*"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "halp.VERSION.VERSION"}

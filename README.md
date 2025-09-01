@@ -34,6 +34,10 @@ sudo apt install -y pipx
 pipx ensurepath
 #restart shell
 pipx install git+https://github.com/ABVStudio-net/halp.git
+
+which halp
+halp --version
+halp -h
 ```
 
 
