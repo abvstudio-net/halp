@@ -104,29 +104,51 @@ def chat_loop(
 
 
 def _extract_json_objects(text: str) -> List[dict]:
-    """Best-effort extractor for JSON objects in model output.
+    """Extract JSON objects from arbitrary text robustly.
 
-    - Prefer fenced ```json blocks.
-    - Fallback to first balanced-looking { ... } object in the text.
+    This implementation scans the text, tracks string/escape state, and
+    collects balanced {...} objects while ignoring braces inside strings.
     """
     objs: List[dict] = []
-    # Prefer code-fenced JSON
-    for m in re.finditer(r"```json\s*(\{[\s\S]*?\})\s*```", text, flags=re.IGNORECASE):
-        try:
-            obj = json.loads(m.group(1))
-            objs.append(obj)
-        except Exception:
+
+    in_string = False
+    escape = False
+    depth = 0
+    start_idx: Optional[int] = None
+
+    for i, ch in enumerate(text):
+        if in_string:
+            if escape:
+                # Current char is escaped; consume and reset escape
+                escape = False
+            else:
+                if ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_string = False
             continue
-    if objs:
-        return objs
-    # Fallback: find first {..} blob (non-greedy) and try to parse
-    m = re.search(r"\{[\s\S]*?\}", text)
-    if m:
-        try:
-            obj = json.loads(m.group(0))
-            objs.append(obj)
-        except Exception:
-            pass
+
+        # Not in a string
+        if ch == '"':
+            in_string = True
+            continue
+        if ch == '{':
+            if depth == 0:
+                start_idx = i
+            depth += 1
+            continue
+        if ch == '}' and depth > 0:
+            depth -= 1
+            if depth == 0 and start_idx is not None:
+                candidate = text[start_idx : i + 1]
+                try:
+                    obj = json.loads(candidate)
+                    if isinstance(obj, dict):
+                        objs.append(obj)
+                except Exception:
+                    pass
+                start_idx = None
+
     return objs
 
 
