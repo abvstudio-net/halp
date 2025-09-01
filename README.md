@@ -25,48 +25,7 @@ API_KEY=
 DEFAULT_MODEL=
 ```
 
- 
-
-## Installation
-
-Install (user-only) via pip:
-
-```bash
-python3 -m pip install --user .
-```
-
-Development (editable) install (user):
-
-```bash
-python3 -m pip install --user -e .
-```
-
-Note: Global/system-wide installs are not supported. Always use `--user` and do not use `sudo`.
-
-## PATH notes
-
-- Linux (and many macOS setups) will place user-installed scripts in `~/.local/bin`.
-  - Ensure it’s on your PATH:
-    ```bash
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-    # For zsh:
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-    ```
-- On some macOS Python installs, user scripts go to `$(python3 -m site --user-base)/bin`.
-  - You can add it like this:
-    ```bash
-    echo "export PATH=\"$(python3 -m site --user-base)/bin:\$PATH\"" >> ~/.zshrc
-    ```
-
-## Where it gets installed
-
-- CLI script: `~/.local/bin/halp` (with `--user` installs)
-- Module: `~/.local/lib/pythonX.Y/site-packages/halp.py`
-- Metadata: `~/.local/lib/pythonX.Y/site-packages/halp-<version>.dist-info/`
-  - License is included here
-  - README contents are embedded in `METADATA`
-
-## Quick start
+# Installation
 
 Ensure pipx is installed
 
