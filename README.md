@@ -1,55 +1,113 @@
 # halp
 
-`halp` is a command line tool that provides remote-Ollama assistance for the command line.
+`halp` is a command line tool that provides AI assistance for your terminal workflows. It connects to an OpenAI-compatible endpoint (e.g., Open WebUI, OpenAI).
 
-It connects to your remote Ollama instances (via OpenAI-compatible API) and injects contextual information into prompts, helping the LLM understand exactly what you're working with.
+## Features
 
-## Installation
+- Simple configuration via `~/.halp.env`
+- OpenAI-compatible model listing via `/v1/models`
+- CLI overrides for base URL, API key, and model
+- Verbose and debug logging
+- Secure config file permissions (0600)
+- Interactive first-run setup
 
-1. git clone this repo
+## Requirements
 
-```
-cd halp
-chmod +x ./halp
-mkdir -p ~/.local/bin
-mv ./halp ~/.local/bin/halp
-touch ~/.halp.yaml
-```
-
-```sh
-# Add ~/.local/bin to PATH for zsh on macOS
-if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' ~/.zshrc; then
-  echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-fi
-source ~/.zshrc
-```
-
-## Usage
-
-```bash
-# Basic usage
-halp "How do I implement a binary search in Python?"
-
-# Specify a different Ollama model
-halp --model llama3 "Explain the difference between promises and async/await in JavaScript"
-
-# Connect to a remote Ollama instance
-halp --host remote-ollama.example.com:11434 "What's wrong with my Docker configuration?"
-```
+- Python 3.8+
 
 ## Configuration
 
-You can configure `halp` by creating a config file at `~/.halp.yaml`:
+`halp` stores configuration in `~/.halp.env`. If the file doesn’t exist, the CLI will guide you through a short setup:
 
-```yaml
-host: localhost:11434
-api_key: your_api_key_here
-
-# Default model to use
-model: gemma3
-
-# Additional context settings
-context:
-  include_git: true  # Include git information in context
-  max_files: 5       # Maximum number of files to include in context
+```env
+BASE_URL=
+API_KEY=
+DEFAULT_MODEL=
 ```
+
+ 
+
+## Installation
+
+Install (user-only) via pip:
+
+```bash
+python3 -m pip install --user .
+```
+
+Development (editable) install (user):
+
+```bash
+python3 -m pip install --user -e .
+```
+
+Note: Global/system-wide installs are not supported. Always use `--user` and do not use `sudo`.
+
+## PATH notes
+
+- Linux (and many macOS setups) will place user-installed scripts in `~/.local/bin`.
+  - Ensure it’s on your PATH:
+    ```bash
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+    # For zsh:
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+    ```
+- On some macOS Python installs, user scripts go to `$(python3 -m site --user-base)/bin`.
+  - You can add it like this:
+    ```bash
+    echo "export PATH=\"$(python3 -m site --user-base)/bin:\$PATH\"" >> ~/.zshrc
+    ```
+
+## Where it gets installed
+
+- CLI script: `~/.local/bin/halp` (with `--user` installs)
+- Module: `~/.local/lib/pythonX.Y/site-packages/halp.py`
+- Metadata: `~/.local/lib/pythonX.Y/site-packages/halp-<version>.dist-info/`
+  - License is included here
+  - README contents are embedded in `METADATA`
+
+## Quick start
+
+Ensure pipx is installed
+
+```sh
+sudo apt install -y pipx
+pipx ensurepath
+#restart shell
+pipx install git+https://github.com/ABVStudio-net/halp.git
+```
+
+
+## Usage
+
+- Print help:
+  ```bash
+  halp --help
+  ```
+- Interactive setup:
+  ```bash
+  halp --init
+  ```
+- Print current configuration:
+  ```bash
+  halp --print-config
+  ```
+- List available models from the configured endpoint:
+  ```bash
+  halp -l
+  ```
+- Override model for a single run:
+  ```bash
+  halp -m hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Q8_K_XL
+  ```
+
+## Development
+
+- Editable install during development:
+  ```bash
+  pipx install --editable .
+  ```
+- Uninstall:
+  ```bash
+  pipx uninstall halp
+  ```

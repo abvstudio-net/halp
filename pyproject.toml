@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "halp"
+version = "0.1.0"
+description = "AI assistance for the command line"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+
+[project.scripts]
+halp = "halp:main"
+
+[tool.setuptools]
+py-modules = ["halp"]
+license-files = ["LICENSE*"]
