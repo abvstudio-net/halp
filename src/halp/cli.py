@@ -38,7 +38,12 @@ def main(argv=None) -> int:  # new modular entrypoint (overrides legacy main abo
     parser.add_argument("--verbose", action="store_true", help="Use a normal, not-terse assistant system prompt")
     parser.add_argument("--debug", "-d", action="store_true", help="Enable debug logging to console")
     parser.add_argument("--init", action="store_true", help="Run interactive setup wizard, even if ~/.halp.env exists")
-    parser.add_argument("--quick", "-q", action="store_true", help="Force a single one-pass reply (no tool use)")
+    parser.add_argument(
+        "--quick",
+        "-q",
+        action="store_true",
+        help="Run a single agent episode (tools allowed) and exit after the final reply",
+    )
 
     # Config overrides
     parser.add_argument("-u", "--base_url", help="Override BASE_URL (ignore ~/.halp.env)")
@@ -241,17 +246,19 @@ def main(argv=None) -> int:  # new modular entrypoint (overrides legacy main abo
         agent_chunks.append("Be terse and concise.\n")
     agent_system_prompt = "".join(agent_chunks)
 
-    # Start quick (single pass) or agent loop (default)
+    # Start quick (single-episode agent) or full agent loop (default)
     try:
         if args.quick:
-            return chat_loop_new(
+            return agent_loop_new(
                 base_url=base_url,
                 api_key=api_key,
                 model=model,
                 initial_user_prompt=prompt_text,
-                system_prompt=system_prompt,
-                once=True,
+                system_prompt=agent_system_prompt,
+                tools=tools,
+                max_steps=args.max_steps,
                 logger=logger,
+                continue_conversation=False,
             )
         else:
             return agent_loop_new(

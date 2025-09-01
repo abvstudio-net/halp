@@ -109,6 +109,15 @@ class ShellTool(Tool):
                     "stderr": "Command not executed: user declined.",
                 }
         try:
+            # Always echo the command being executed in yellow so the user can see it
+            try:
+                yellow = set_color(YELLOW)
+                reset = "\033[0m"
+                sys.stdout.write(f"{yellow}{cmd}{reset}\n")
+                sys.stdout.flush()
+            except Exception:
+                pass
+
             # Use shell=True to allow pipelines and operators users expect
             proc = subprocess.run(
                 cmd,

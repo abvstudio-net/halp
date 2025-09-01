@@ -22,16 +22,16 @@ prompts=(
   "yolo how long until midnight?"
   "yolo what timezone am I in?"
   "yolo what is the CPU temp and battery level?"
-  "yolo Summarize this repository by listing files in the current directory and describing notable items"
+  #"yolo Summarize this repository by listing files in the current directory and describing notable items"
   "yolo Show disk usage of the current directory, sorted descending, and print the top 10 entries"
   "yolo Find the 10 largest files under the repository recursively with human-readable sizes"
   "yolo Count total lines of code for Python files under src/"
-  "yolo Show the 10 most CPU-intensive processes (no sudo)"
+  #"yolo Show the 10 most CPU-intensive processes (no sudo)"
   "yolo Display OS and kernel information"
   "yolo Show listening TCP ports and the owning processes using ss or netstat (no sudo)"
   "yolo If this is a git repo, show 'git status -s' and the last 3 commits"
   "yolo Search for TODO or FIXME notes under this repo and print counts per file"
-  "yolo Show Python version and the top 20 installed packages by size or name"
+  #"yolo Show Python version and the top 20 installed packages by size or name"
   "yolo Check available disk space and memory"
   "yolo List top-level directories and their file counts"
   "yolo Show the last 20 lines of shell history if available without modifying any files"
@@ -53,7 +53,7 @@ for prompt in "${prompts[@]}"; do
 
   # Run halp and capture exit status without aborting the whole script
   set +e
-  halp "$prompt" 2>&1 | tee -a "$OUTPUT"
+  halp --quick "$prompt" 2>&1 | tee -a "$OUTPUT"
   status=${PIPESTATUS[0]}
   set -e
 
