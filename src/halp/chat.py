@@ -168,6 +168,22 @@ def agent_loop(
             return 130
         if not user_msg:
             return 0
+        # Detect leading "yolo" directive to enable auto-execution and strip it from the prompt
+        yolo = False
+        if user_msg and user_msg.strip():
+            parts = user_msg.strip().split(None, 1)
+            if parts and parts[0].lower() == "yolo":
+                yolo = True
+                user_msg = parts[1] if len(parts) > 1 else ""
+        if yolo:
+            try:
+                for t in tools.values():
+                    if hasattr(t, "unsafe_exec"):
+                        setattr(t, "unsafe_exec", True)
+                if logger:
+                    logger.debug("'yolo' directive detected: enabling unsafe_exec for tools")
+            except Exception:
+                pass
         messages.append({"role": "user", "content": user_msg})
 
     for step in range(1, max_steps + 1):
@@ -209,7 +225,26 @@ def agent_loop(
             return 0
 
         if tool_obj is None:
-            # No tool: treat whole reply as final answer
+            # No tool parsed. If the reply appears to attempt a tool call (malformed JSON), ask to try again.
+            looks_like_tool = (
+                '```json' in reply
+                or '"tool"' in reply
+                or re.search(r"\{[^}]*\"tool\"", reply) is not None
+            )
+            if looks_like_tool:
+                if logger:
+                    logger.debug("Malformed tool JSON detected; asking model to re-emit valid JSON")
+                messages.append({"role": "assistant", "content": reply})
+                messages.append({
+                    "role": "user",
+                    "content": (
+                        "Observation:\n"
+                        + json.dumps({
+                            "error": "Malformed tool JSON. Emit ONLY a JSON object like {\"tool\": \"shell\", \"input\": \"...\"} or a final {\"final\": \"...\"}. No extra text."})
+                    ),
+                })
+                continue
+            # Otherwise, treat whole reply as final answer
             print(reply)
             return 0
 
@@ -230,10 +265,26 @@ def agent_loop(
                 "error": f"Unknown tool: {tool_name}",
             }
         else:
+            # Pre-check: never allow sudo; instruct model to try again without sudo
+            if tool_name == "shell" and re.search(r"\bsudo\b", tool_input or "", re.IGNORECASE):
+                observation = {
+                    "ok": False,
+                    "returncode": 13,
+                    "stdout": "",
+                    "stderr": "Blocked by policy: 'sudo' is not allowed in tool calls. Recommend the sudo command to the user instead, or retry without sudo.",
+                }
+            else:
+                try:
+                    observation = tool.run(tool_input)
+                except Exception as e:
+                    observation = {"ok": False, "error": f"Tool execution error: {e}"}
+        if logger:
             try:
-                observation = tool.run(tool_input)
-            except Exception as e:
-                observation = {"ok": False, "error": f"Tool execution error: {e}"}
+                rc = observation.get("returncode") if isinstance(observation, dict) else None
+                ok = observation.get("ok") if isinstance(observation, dict) else None
+                logger.debug(f"Tool observation: ok={ok}, returncode={rc}")
+            except Exception:
+                logger.debug("Tool observation logged.")
 
         # Append to transcript as an observation for the model
         obs_text = json.dumps({"tool": tool_name, "result": observation})

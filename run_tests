@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+# halp agentic tool usage test runner (yolo mode)
+# Non-interactive: prompts start with 'yolo ' and we add --debug to capture tool logs
+set -euo pipefail
+
+OUTPUT=${OUTPUT:-test_output.txt}
+
+# ANSI colors
+RESET=$'\033[0m'
+BOLD=$'\033[1m'
+RED=$'\033[31m'
+GREEN=$'\033[32m'
+YELLOW=$'\033[33m'
+CYAN=$'\033[36m'
+
+# Truncate or create output file
+: > "$OUTPUT"
+
+prompts=(
+  "yolo what kind of laptop is this"
+  "yolo how long until midnight?"
+  "yolo what timezone am I in?"
+  "yolo what is the CPU temp and battery level?"
+  "yolo Summarize this repository by listing files in the current directory and describing notable items"
+  "yolo Show disk usage of the current directory, sorted descending, and print the top 10 entries"
+  "yolo Find the 10 largest files under the repository recursively with human-readable sizes"
+  "yolo Count total lines of code for Python files under src/"
+  "yolo Show the 10 most CPU-intensive processes (no sudo)"
+  "yolo Display OS and kernel information"
+  "yolo Show listening TCP ports and the owning processes using ss or netstat (no sudo)"
+  "yolo If this is a git repo, show 'git status -s' and the last 3 commits"
+  "yolo Search for TODO or FIXME notes under this repo and print counts per file"
+  "yolo Show Python version and the top 20 installed packages by size or name"
+  "yolo Check available disk space and memory"
+  "yolo List top-level directories and their file counts"
+  "yolo Show the last 20 lines of shell history if available without modifying any files"
+  "yolo List files larger than 5MB under the repo"
+  "yolo Show the current working directory and username"
+  "yolo is my firewall running?"
+)
+
+i=1
+for prompt in "${prompts[@]}"; do
+  echo "${BOLD}${CYAN}===== TEST $i =====${RESET}" | tee -a "$OUTPUT"
+  echo "${YELLOW}PROMPT:${RESET} $prompt" | tee -a "$OUTPUT"
+  echo | tee -a "$OUTPUT"
+
+  # Record start time (UTC) and high-resolution timestamp
+  start_ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  start_ns=$(date +%s%N 2>/dev/null || echo $(( $(date +%s) * 1000000000 )))
+  # (Start time recorded but not printed)
+
+  # Run halp and capture exit status without aborting the whole script
+  set +e
+  halp "$prompt" 2>&1 | tee -a "$OUTPUT"
+  status=${PIPESTATUS[0]}
+  set -e
+
+  # Record end time and compute duration in seconds
+  end_ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  end_ns=$(date +%s%N 2>/dev/null || echo $(( $(date +%s) * 1000000000 )))
+  delta_ns=$(( end_ns - start_ns ))
+  dur_s=$(( delta_ns / 1000000000 ))
+  dur_ms=$(( (delta_ns / 1000000) % 1000 ))
+  printf "%sDURATION_S:%s %d.%03d\n" "$GREEN" "$RESET" "$dur_s" "$dur_ms" | tee -a "$OUTPUT"
+  if [ "$status" -ne 0 ]; then
+    echo "${BOLD}${RED}EXIT_STATUS:${RESET} $status" | tee -a "$OUTPUT"
+  fi
+  echo | tee -a "$OUTPUT"
+  echo "${BOLD}${CYAN}===== END TEST $i =====${RESET}" | tee -a "$OUTPUT"
+  echo | tee -a "$OUTPUT"
+  i=$((i+1))
+done
+
+echo "Wrote results to $OUTPUT"

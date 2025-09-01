@@ -36,7 +36,7 @@ def main(argv=None) -> int:  # new modular entrypoint (overrides legacy main abo
     parser.add_argument("--version", "-v", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("--env", action="store_true", help="Print the loaded environment configuration and exit")
     parser.add_argument("--verbose", action="store_true", help="Use a normal, not-terse assistant system prompt")
-    parser.add_argument("--debug", action="store_true", help="Enable debug logging to console")
+    parser.add_argument("--debug", "-d", action="store_true", help="Enable debug logging to console")
     parser.add_argument("--init", action="store_true", help="Run interactive setup wizard, even if ~/.halp.env exists")
     parser.add_argument("--quick", "-q", action="store_true", help="Force a single one-pass reply (no tool use)")
 
@@ -50,11 +50,10 @@ def main(argv=None) -> int:  # new modular entrypoint (overrides legacy main abo
 
     # Agent mode (default)
     parser.add_argument("--max_steps", type=int, default=10, help="Max agent steps before stopping")
-    parser.add_argument("--dry_run", action="store_true", help="Do not execute commands; show what would run")
     parser.add_argument(
         "--unsafe_exec",
         action="store_true",
-        help="Allow potentially unsafe commands (like rm, sudo). Use with caution.",
+        help="Auto-execute shell commands without confirmation (DANGEROUS)",
     )
 
     # Prompt to send to the model (positional). If omitted, halp prints status or reads from stdin when piped.
@@ -105,8 +104,15 @@ def main(argv=None) -> int:  # new modular entrypoint (overrides legacy main abo
 
     # Determine initial prompt from args or stdin; if none, start interactive and ask
     prompt_text = None
+    unsafe_exec_flag = args.unsafe_exec
     if args.prompt:
         prompt_text = " ".join(args.prompt).strip()
+        # "yolo" directive at start enables auto-execution and is stripped from the prompt
+        if prompt_text.lower().startswith("yolo"):
+            parts = prompt_text.split(None, 1)
+            if parts and parts[0].lower() == "yolo":
+                unsafe_exec_flag = True
+                prompt_text = parts[1] if len(parts) > 1 else ""
     elif not sys.stdin.isatty():
         try:
             prompt_text = sys.stdin.read().strip()
@@ -115,6 +121,12 @@ def main(argv=None) -> int:  # new modular entrypoint (overrides legacy main abo
             return 130
         except Exception:
             prompt_text = None
+        # Detect leading "yolo" directive in piped input
+        if prompt_text and prompt_text.lower().startswith("yolo"):
+            parts = prompt_text.split(None, 1)
+            if parts and parts[0].lower() == "yolo":
+                unsafe_exec_flag = True
+                prompt_text = parts[1] if len(parts) > 1 else ""
 
     base_url = config.get("BASE_URL", "")
     api_key = config.get("API_KEY", "")
@@ -125,12 +137,15 @@ def main(argv=None) -> int:  # new modular entrypoint (overrides legacy main abo
 
     # Select system prompt based on verbosity (default: terse)
     if args.verbose:
-        system_prompt = "You are HALP, a helpful command-line assistant."
+        system_prompt = (
+            "You are HALP, a helpful command-line assistant. Be helpful but concise. "
+            "Use tools when necessary."
+        )
     else:
         system_prompt = "You are HALP, a helpful command-line assistant. Be terse and concise."
 
     # Build agent system prompt with environment grounding and tools
-    tools = get_default_toolset(dry_run=args.dry_run, unsafe_exec=args.unsafe_exec)
+    tools = get_default_toolset(unsafe_exec=unsafe_exec_flag)
     env_overview = (
         f"OS={platform.system()} {platform.release()} ({platform.machine()}), "
         f"Python={platform.python_version()}, Shell={os.environ.get('SHELL', '')}, "
@@ -189,13 +204,28 @@ def main(argv=None) -> int:  # new modular entrypoint (overrides legacy main abo
         '{"tool": "shell", "input": "ls -la"}.\n'
     )
     agent_chunks.append(
+        "Never include extra commentary around tool JSON. No code fences. No prose.\n"
+    )
+    agent_chunks.append(
         "After executing a tool, you will receive an 'Observation'. Use it to decide the next step.\n"
     )
     agent_chunks.append(
         "If you have a final answer for the user, emit ONLY {\"final\": \"...\"}. No extra text.\n"
     )
     agent_chunks.append(
+        "Policy: NEVER use 'sudo' in any tool call. If elevated privileges are needed, do NOT call tools; instead, emit ONLY a final answer that explains the exact sudo command the user can run manually.\n"
+    )
+    agent_chunks.append(
+        "If your previous reply had malformed tool JSON or a blocked command (e.g., contained 'sudo'), re-emit a corrected tool JSON without sudo, or provide a final answer. Do not include anything besides the JSON object.\n"
+    )
+    agent_chunks.append(
         "Tool calls that execute CLI commands will be presented for user confirmation unless --unsafe_exec is set, in which case they auto-execute.\n"
+    )
+    agent_chunks.append(
+        "Avoid destructive commands. Prefer read-only queries unless explicitly requested. Even with auto-execution, 'sudo' remains disallowed.\n"
+    )
+    agent_chunks.append(
+        "The user may also type 'yolo' as the first word of their prompt to enable auto-execution for this session. The word 'yolo' is a directive and should be stripped from the task.\n"
     )
     agent_chunks.append(f"\nEnvironment:\n{env_overview}\n")
     agent_chunks.append(f"User: {user_name} (home={home_dir})\n")

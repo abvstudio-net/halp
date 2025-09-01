@@ -29,7 +29,7 @@ This document orients a new contributor to the halp CLI: how it works, how it’
 
 ## Key modules and responsibilities
 - `halp.cli.main()`
-  - Flags: `--env`, `--verbose`, `--debug`, `--init`, `--yolo`, overrides (`--base_url`, `--api_key`, `--model`), actions (`-l/--list_models`), __agent flags__ (`--agent`, `--max_steps`, `--dry_run`, `--unsafe_exec`).
+  - Flags: `--env`, `--verbose`, `--debug`, `--init`, `--yolo`, overrides (`--base_url`, `--api_key`, `--model`), actions (`-l/--list_models`), __agent flags__ (`--agent`, `--max_steps`, `--unsafe_exec`).
   - Flow: ensure config → optional list models → compute prompt (args/stdin) → choose chat or agent loop.
 - `halp.chat.chat_loop()`
   - Maintains `messages` and streams assistant tokens (SSE) with green color.
@@ -50,9 +50,8 @@ This document orients a new contributor to the halp CLI: how it works, how it’
   - `Tool` base class: `run(user_input: str) -> dict` returning `{ok, returncode, stdout, stderr}`.
   - `ShellTool`
     - Safety: regex blocklist (e.g., `rm`, `sudo`, package managers, redirections, etc.).
-    - `--dry_run`: returns a simulated result.
-    - `--unsafe_exec`: bypasses blocklist with caution.
-  - `get_default_toolset(dry_run, unsafe_exec)` returns `{ "shell": ShellTool(...) }`.
+    - Interactive confirmation before executing unless `--unsafe_exec` is set.
+  - `get_default_toolset(unsafe_exec)` returns `{ "shell": ShellTool(...) }`.
 - `halp.config`
   - `.halp.env` keys: `BASE_URL`, `API_KEY`, `DEFAULT_MODEL`.
   - Interactive setup supports defaults from `HALP_BASE_URL` and `HALP_DEFAULT_MODEL` env vars.
@@ -69,7 +68,6 @@ This document orients a new contributor to the halp CLI: how it works, how it’
 - One-off model override: `halp -m <model>`
 - Chat mode interactive: `halp`
 - Chat mode one reply: `halp -o "Explain pipes in bash"`
-- Agent mode (safe): `halp --agent --dry_run "List files in this directory"`
 - Agent mode (dangerous; opt-in): `halp --agent --unsafe_exec "Remove temp files"`
 
 ## Agent JSON protocols (what the model should emit)
@@ -84,9 +82,8 @@ This document orients a new contributor to the halp CLI: how it works, how it’
 - The loop returns when a final object is seen, or when `max_steps` is reached.
 
 ## Safety model
-- Default: cautious. The shell is blocked when inputs match a safety regex.
-- `--dry_run`: no commands run; output explains what would have run.
-- `--unsafe_exec`: explicitly allow dangerous commands — users must opt in.
+- Default: cautious. The shell requires interactive confirmation before running.
+- `--unsafe_exec`: explicitly allow auto-execution — users must opt in (or use `yolo` directive).
 
 ## Extending halp
 - __Add a new tool__
@@ -99,7 +96,6 @@ This document orients a new contributor to the halp CLI: how it works, how it’
 - Ensure env: `~/.halp.env` with `BASE_URL`, `API_KEY`, `DEFAULT_MODEL`.
 - Connectivity: `halp -l` should print models.
 - Chat smoke test: `echo "hello" | halp -o`
-- Agent dry-run: `halp --agent --dry_run -o "What’s in this directory?"`
 
 ## Known gaps / cleanup opportunities
 - __README flag drift__: README uses `--print-config`; CLI flag is `--env`. Align docs or add an alias.
@@ -112,7 +108,7 @@ This document orients a new contributor to the halp CLI: how it works, how it’
 ## Glossary of important symbols
 - `chat_loop(base_url, api_key, model, initial_user_prompt, system_prompt, once, logger)`
 - `agent_loop(base_url, api_key, model, initial_user_prompt, system_prompt, tools, max_steps, logger)`
-- `get_default_toolset(dry_run, unsafe_exec)` → `{ name: Tool }`
+- `get_default_toolset(unsafe_exec)` → `{ name: Tool }`
 - `chat_completion_openai_stream(base_url, api_key, model, messages, ...)` → yields text chunks
 
 — End —
