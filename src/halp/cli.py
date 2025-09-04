@@ -221,6 +221,12 @@ def main(argv=None) -> int:  # new modular entrypoint (overrides legacy main abo
         "Policy: NEVER use 'sudo' in any tool call. If elevated privileges are needed, do NOT call tools; instead, emit ONLY a final answer that explains the exact sudo command the user can run manually.\n"
     )
     agent_chunks.append(
+        "Policy: NEVER install or upgrade software in any tool call. Do not invoke package managers or installers (e.g., apt, apt-get, yum, dnf, pacman, zypper, apk, brew, port, choco, scoop) or language/runtime installers (e.g., pip/pip3 install, conda/mamba install, npm/yarn/pnpm, gem, cargo, go install). Avoid shell-install patterns (e.g., curl | bash, wget | sh, bash <(curl ...)). If installation appears required, do NOT call tools; instead, emit ONLY a final answer describing the exact commands the user can run manually.\n"
+    )
+    agent_chunks.append(
+        "Do not modify package repositories or system configuration (e.g., add-apt-repository, editing sources, apt-key/rpm --import).\n"
+    )
+    agent_chunks.append(
         "If your previous reply had malformed tool JSON or a blocked command (e.g., contained 'sudo'), re-emit a corrected tool JSON without sudo, or provide a final answer. Do not include anything besides the JSON object.\n"
     )
     agent_chunks.append(
